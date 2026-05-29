@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="TaskFlow is a browser-based task manager with Kanban board, list view, authentication, and local persistence.">
+<title>TaskFlow - Task Manager</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">✅</div>
+        <h1>TaskFlow</h1>
+      </div>
+      <p class="auth-sub">Manage your tasks efficiently</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" value="admin@demo.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" value="admin123">
+        </div>
+        <div id="login-error" class="error-msg"></div>
+        <button class="btn btn-primary btn-full" onclick="doLogin()">Sign In →</button>
+        <div class="demo-hint">
+          <strong>Demo accounts:</strong><br>
+          admin@demo.com / admin123 (Admin)<br>
+          user@demo.com / user123 (Member)
+        </div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="register-form" style="display:none">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="Min. 6 characters">
+        </div>
+        <div id="register-error" class="error-msg"></div>
+        <button class="btn btn-primary btn-full" onclick="doRegister()">Create Account →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen" class="screen">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon small">✅</div>
+      <span class="logo-label">TaskFlow</span>
+      <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
+    </div>
+    <div class="user-card">
+      <div class="user-avatar" id="nav-avatar">AJ</div>
+      <div>
+        <div class="user-name" id="nav-name">Alex Johnson</div>
+        <div class="user-role" id="nav-role">Admin</div>
+      </div>
+    </div>
+    <ul class="nav-list">
+      <li><a class="nav-link active" onclick="setView('board')">⊞ Board</a></li>
+      <li><a class="nav-link" onclick="setView('list')">≡ List View</a></li>
+      <li><a class="nav-link" onclick="filterByPriority('high')">🔴 High Priority</a></li>
+      <li><a class="nav-link" onclick="filterByStatus('inprogress')">⟳ In Progress</a></li>
+      <li><a class="nav-link" onclick="filterByStatus('done')">✔ Completed</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="progress-label">
+        <span>Overall Progress</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <button class="btn-logout" onclick="doLogout()">⎋ Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main-area">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <h2 class="page-title" id="page-title">Kanban Board</h2>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search tasks..." oninput="doSearch(this.value)">
+        </div>
+        <button class="btn btn-primary" onclick="openModal()">+ New Task</button>
+      </div>
+    </header>
+
+    <!-- FILTERS -->
+    <div class="filter-bar">
+      <button class="chip active" id="chip-all" onclick="clearFilters()">All</button>
+      <button class="chip" id="chip-high" onclick="filterByPriority('high')">🔴 High</button>
+      <button class="chip" id="chip-medium" onclick="filterByPriority('medium')">🟡 Medium</button>
+      <button class="chip" id="chip-low" onclick="filterByPriority('low')">🟢 Low</button>
+      <span class="filter-sep">|</span>
+      <button class="chip" id="chip-todo" onclick="filterByStatus('todo')">To Do</button>
+      <button class="chip" id="chip-inprogress" onclick="filterByStatus('inprogress')">In Progress</button>
+      <button class="chip" id="chip-done" onclick="filterByStatus('done')">Done</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="stat-num" id="stat-todo">0</div><div class="stat-label">To Do</div></div>
+      <div class="stat-card amber"><div class="stat-num" id="stat-inprog">0</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card green"><div class="stat-num" id="stat-done">0</div><div class="stat-label">Done</div></div>
+      <div class="stat-card purple"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+    </div>
+
+    <!-- BOARD VIEW -->
+    <div id="board-view">
+      <div class="board-columns">
+        <div class="column">
+          <div class="col-header blue-dot"><span class="col-dot"></span><span class="col-title">📋 To Do</span><span class="col-count" id="cnt-todo">0</span></div>
+          <div class="col-body" id="col-todo"></div>
+        </div>
+        <div class="column">
+          <div class="col-header amber-dot"><span class="col-dot"></span><span class="col-title">⟳ In Progress</span><span class="col-count" id="cnt-inprogress">0</span></div>
+          <div class="col-body" id="col-inprogress"></div>
+        </div>
+        <div class="column">
+          <div class="col-header green-dot"><span class="col-dot"></span><span class="col-title">✅ Done</span><span class="col-count" id="cnt-done">0</span></div>
+          <div class="col-body" id="col-done"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div id="list-view" style="display:none">
+      <div class="list-container" id="task-list"></div>
+    </div>
+  </main>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">New Task</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" id="task-title" placeholder="What needs to be done?">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="task-desc" rows="3" placeholder="Add details..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="task-priority">
+            <option value="low">🟢 Low</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="task-status">
+            <option value="todo">To Do</option>
+            <option value="inprogress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="task-tag" placeholder="e.g. Frontend, Design">
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" id="task-due">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Assignee</label>
+        <select id="task-assignee">
+          <option value="">Unassigned</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="delete-btn" onclick="deleteCurrentTask()" style="display:none">Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTask()" id="save-btn">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
